@@ -102,13 +102,25 @@ Item {
 
             property double inValue
 
+            readonly property real voltageToLoudnessExponent: 0.67
+            readonly property real loudnessToVoltageExponent: 1.0/voltageToLoudnessExponent
+
+            function voltageToLoudness(v) {
+                return Math.pow(v, voltageToLoudnessExponent) / Math.pow(100.0, voltageToLoudnessExponent) * 100.0;
+            }
+            function loudnessToVoltage(v) {
+                return Math.pow(v, loudnessToVoltageExponent) / Math.pow(100.0, loudnessToVoltageExponent) * 100.0;
+            }
+
             onValueChanged: {
                 if (Math.abs(value - inValue) >= 1.0) {
-                    if (value > inValue + 10.0)
-                        value = inValue + 10.0; // loop on value changed
-                    else {
-                        if (player.setVolumeGroup(volumeGroupSlider.value)) {
-                            volumeGroupSlider.inValue = player.volumeMaster = Math.round(volumeGroupSlider.value);
+                    if (value > inValue + 5.0) {
+                        value = inValue + 5.0; // loop on value changed
+                    } else {
+                        var v = loudnessToVoltage(value);
+                        if (player.setVolumeGroup(v)) {
+                            player.volumeMaster = Math.round(v);
+                            inValue = value;
                         } else {
                             customdebug("Set volume failed");
                         }
@@ -126,13 +138,14 @@ Item {
                 target: player
                 onVolumeMasterChanged: {
                     // update an icoming change when released only to be smoothest
-                    if (!volumeGroupSlider.pressed)
-                        volumeGroupSlider.value = volumeGroupSlider.inValue = player.volumeMaster;
+                    if (!volumeGroupSlider.pressed) {
+                        volumeGroupSlider.value = volumeGroupSlider.inValue = volumeGroupSlider.voltageToLoudness(player.volumeMaster);
+                    }
                 }
             }
 
             Component.onCompleted: {
-                value = inValue = player.volumeMaster;
+                value = inValue = voltageToLoudness(player.volumeMaster);
             }
         }
 
